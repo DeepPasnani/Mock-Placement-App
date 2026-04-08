@@ -11,7 +11,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.3",
-    "@google/generativeai": "^0.2.1",
+    "@google/generative-ai": "^0.2.1",
     "axios": "^1.6.5",
     "@monaco-editor/react": "^4.6.0",
     "react-hot-toast": "^2.4.1",
