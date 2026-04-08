@@ -41,7 +41,7 @@ services:
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
       TZ: Asia/Kolkata
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_ID: 1076160158443-62uo72dja8d59vt6tvbn9lqe1o5c4k4f.apps.googleusercontent.com
     ports:
       - "5000:5000"
     depends_on:
@@ -56,11 +56,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_GOOGLE_CLIENT_ID: 1076160158443-62uo72dja8d59vt6tvbn9lqe1o5c4k4f.apps.googleusercontent.com
         VITE_APP_NAME: CampusTrack
     container_name: pp_frontend
     ports:
-      - "6547:80"
+      - "6666:80"
     depends_on:
       - backend
     restart: unless-stopped

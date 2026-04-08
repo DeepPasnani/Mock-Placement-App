@@ -219,15 +219,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {isLoginMode && (
-              <div className="mt-4 p-3 bg-surface-light rounded-xl">
-                <p className="text-xs text-gray-500 text-center">
-                  <strong className="text-gray-400">Demo Credentials:</strong><br />
-                  Admin: <code className="text-primary">admin@college.edu</code> / <code className="text-primary">Admin@123</code>
-                </p>
-              </div>
-            )}
-
             {hasValidGoogleClient && (
               <>
                 <div className="flex items-center gap-3 my-6">
