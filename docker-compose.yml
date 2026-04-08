@@ -40,6 +40,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres_password_change_me@postgres:5432/placementpro
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
+      TZ: Asia/Kolkata
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     ports:
       - "5000:5000"
@@ -67,3 +68,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  
