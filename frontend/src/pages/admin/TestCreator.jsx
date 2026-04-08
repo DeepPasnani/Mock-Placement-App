@@ -307,10 +307,18 @@ export default function TestCreator() {
 
   const handleSave = (status) => {
     if (!form.title.trim()) { toast.error('Test title is required'); setStep(0); return; }
+    
+    const convertToUTC = (localDateTime) => {
+      if (!localDateTime) return null;
+      const date = new Date(localDateTime);
+      return date.toISOString();
+    };
+    
     const payload = {
       title: form.title, description: form.description,
       status: status || form.status,
-      startTime: form.startTime || null, endTime: form.endTime || null,
+      startTime: convertToUTC(form.startTime), 
+      endTime: convertToUTC(form.endTime),
       durationMinutes: form.durationMinutes,
       settings: form.settings,
       sections: form.sections.map(s => ({

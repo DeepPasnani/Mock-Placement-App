@@ -84,8 +84,8 @@ export default function StudentTests() {
                     {test.start_time && (
                       <span className="flex items-center gap-1">
                         <Calendar size={13}/>
-                        {format(new Date(test.start_time), 'dd MMM yyyy, HH:mm')}
-                        {test.end_time && ` – ${format(new Date(test.end_time), 'HH:mm')}`}
+                        {format(new Date(test.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), 'dd MMM yyyy, HH:mm')}
+                        {test.end_time && ` – ${format(new Date(test.end_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), 'HH:mm')}`}
                       </span>
                     )}
                     {test.settings?.passingScore && (

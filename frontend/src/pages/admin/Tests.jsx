@@ -44,8 +44,8 @@ export default function AdminTests() {
       key: 'start_time', label: 'Schedule',
       render: (t) => t.start_time ? (
         <div className="text-xs text-gray-600">
-          <div>{format(new Date(t.start_time), 'dd MMM yyyy, HH:mm')}</div>
-          <div className="text-gray-400">to {t.end_time ? format(new Date(t.end_time), 'dd MMM HH:mm') : '—'}</div>
+          <div>{format(new Date(t.start_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), 'dd MMM yyyy, HH:mm')}</div>
+          <div className="text-gray-400">to {t.end_time ? format(new Date(t.end_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), 'dd MMM HH:mm') : '—'}</div>
         </div>
       ) : <span className="text-gray-400 text-xs">No schedule</span>,
     },
