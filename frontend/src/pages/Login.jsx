@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 import { Spinner } from '../components/shared/UI';
@@ -9,11 +9,49 @@ export default function LoginPage() {
   const { googleLogin, login, isLoading } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const googleBtnRef = useRef(null);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPasswordForm, setShowPasswordForm] = useState(true);
 
   const from = location.state?.from?.pathname || null;
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const hasValidGoogleClient = clientId && !clientId.includes('YOUR_GOOGLE_CLIENT_ID');
+
+  useEffect(() => {
+    if (!hasValidGoogleClient || !googleBtnRef.current || !window.google) return;
+
+    try {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleResponse,
+      });
+      
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'filled',
+        theme: 'filled_blue',
+        size: 'large',
+        width: '100%',
+        text: 'continue_with',
+        shape: 'rectangular',
+      });
+    } catch (err) {
+      console.error('Google init error:', err);
+    }
+  }, [hasValidGoogleClient]);
+
+  const handleGoogleResponse = async ({ credential }) => {
+    setError('');
+    try {
+      const { user } = await googleLogin(credential);
+      toast.success(`Welcome, ${user.name || user.email}!`);
+      navigate(from || (user.role === 'admin' ? '/admin' : '/student'), { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Google sign-in failed. Please try again.');
+    }
+  };
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -87,7 +125,9 @@ export default function LoginPage() {
           <div className="glass rounded-3xl p-8 lg:p-10">
             <div className="text-center mb-8">
               <h2 className="font-display text-2xl font-bold text-white mb-2">Welcome back</h2>
-              <p className="text-gray-500">Enter your credentials to access the portal</p>
+              <p className="text-gray-500">
+                {showPasswordForm ? 'Enter your credentials to access the portal' : 'Sign in with your Google account'}
+              </p>
             </div>
 
             {error && (
@@ -96,44 +136,70 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleEmailSubmit} className="space-y-5">
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
-                <div className="relative">
-                  <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@institution.edu"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
-                    required
-                  />
-                </div>
+            {showPasswordForm ? (
+              <>
+                <form onSubmit={handleEmailSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
+                    <div className="relative">
+                      <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="you@institution.edu"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
+                    <div className="relative">
+                      <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? <Spinner size={18} className="text-white" /> : null}
+                    Sign In
+                  </button>
+                </form>
+
+                {hasValidGoogleClient && (
+                  <>
+                    <div className="flex items-center gap-3 my-6">
+                      <div className="flex-1 h-px bg-gray-800" />
+                      <span className="text-gray-500 text-xs">or</span>
+                      <div className="flex-1 h-px bg-gray-800" />
+                    </div>
+                    <div ref={googleBtnRef} className="w-full" />
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div ref={googleBtnRef} className="w-full" />
+                <button
+                  onClick={() => setShowPasswordForm(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-light border border-gray-700 rounded-xl text-gray-300 hover:bg-gray-800 transition-colors"
+                >
+                  <Mail size={18} />
+                  Sign in with email instead
+                </button>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
-                <div className="relative">
-                  <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
-                    required
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isLoading ? <Spinner size={18} className="text-white" /> : null}
-                Sign In
-              </button>
-            </form>
+            )}
 
             <div className="mt-8 pt-6 border-t border-gray-800">
               <p className="text-center text-gray-600 text-xs">
