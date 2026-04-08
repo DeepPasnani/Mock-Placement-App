@@ -25,6 +25,19 @@ export const useStore = create(
         }
       },
 
+      register: async (name, email, password) => {
+        set({ isLoading: true });
+        try {
+          const { token, user } = await authAPI.register({ name, email, password });
+          localStorage.setItem('pp_token', token);
+          set({ user, token, isLoading: false });
+          return { user };
+        } catch (err) {
+          set({ isLoading: false });
+          throw err;
+        }
+      },
+
       googleLogin: async (credential) => {
         set({ isLoading: true });
         try {

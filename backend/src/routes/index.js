@@ -12,6 +12,7 @@ const upCtrl   = require('../controllers/upload');
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 router.post('/auth/login',           authLimiter, authCtrl.login);
+router.post('/auth/register',        authLimiter, authCtrl.register);
 router.post('/auth/google',          authLimiter, authCtrl.googleLogin);
 router.post('/auth/logout',          authenticate, authCtrl.logout);
 router.get ('/auth/me',              authenticate, authCtrl.getMe);

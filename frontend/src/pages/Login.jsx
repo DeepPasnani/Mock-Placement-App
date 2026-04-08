@@ -2,18 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 import { Spinner } from '../components/shared/UI';
-import { GraduationCap, Code, Users, TrendingUp, Mail, Lock } from 'lucide-react';
+import { GraduationCap, Code, Users, TrendingUp, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-  const { googleLogin, login, isLoading } = useStore();
+  const { googleLogin, login, register, isLoading } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const googleBtnRef = useRef(null);
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPasswordForm, setShowPasswordForm] = useState(true);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
 
   const from = location.state?.from?.pathname || null;
 
@@ -53,16 +52,27 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const { user } = await login(email, password);
-      toast.success(`Welcome back, ${user.name || user.email}!`);
+      let user;
+      if (isLoginMode) {
+        const result = await login(formData.email, formData.password);
+        user = result.user;
+        toast.success(`Welcome back, ${user.name || user.email}!`);
+      } else {
+        user = await register(formData.name, formData.email, formData.password);
+        toast.success(`Account created! Welcome, ${user.name}!`);
+      }
       navigate(from || (user.role === 'admin' ? '/admin' : '/student'), { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid credentials');
+      setError(err.response?.data?.error || (isLoginMode ? 'Invalid credentials' : 'Registration failed'));
     }
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const features = [
@@ -79,7 +89,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(225,29,72,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial_gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
         
         <div className="relative z-10 flex flex-col justify-center px-16 py-20 w-full">
           <div className="mb-16">
@@ -123,11 +133,21 @@ export default function LoginPage() {
           </div>
 
           <div className="glass rounded-3xl p-8 lg:p-10">
-            <div className="text-center mb-8">
-              <h2 className="font-display text-2xl font-bold text-white mb-2">Welcome back</h2>
-              <p className="text-gray-500">
-                {showPasswordForm ? 'Enter your credentials to access the portal' : 'Sign in with your Google account'}
-              </p>
+            <div className="flex border-b border-gray-800 mb-6">
+              <button
+                onClick={() => { setIsLoginMode(true); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 pb-3 border-b-2 transition-colors ${isLoginMode ? 'border-primary text-white' : 'border-transparent text-gray-500 hover:text-gray-400'}`}
+              >
+                <LogIn size={18} />
+                Sign In
+              </button>
+              <button
+                onClick={() => { setIsLoginMode(false); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 pb-3 border-b-2 transition-colors ${!isLoginMode ? 'border-primary text-white' : 'border-transparent text-gray-500 hover:text-gray-400'}`}
+              >
+                <UserPlus size={18} />
+                Register
+              </button>
             </div>
 
             {error && (
@@ -136,69 +156,70 @@ export default function LoginPage() {
               </div>
             )}
 
-            {showPasswordForm ? (
-              <>
-                <form onSubmit={handleEmailSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
-                    <div className="relative">
-                      <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        placeholder="you@institution.edu"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
-                    <div className="relative">
-                      <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? <Spinner size={18} className="text-white" /> : null}
-                    Sign In
-                  </button>
-                </form>
-
-                {hasValidGoogleClient && (
-                  <>
-                    <div className="flex items-center gap-3 my-6">
-                      <div className="flex-1 h-px bg-gray-800" />
-                      <span className="text-gray-500 text-xs">or</span>
-                      <div className="flex-1 h-px bg-gray-800" />
-                    </div>
-                    <div ref={googleBtnRef} className="w-full" />
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="space-y-4">
-                <div ref={googleBtnRef} className="w-full" />
-                <button
-                  onClick={() => setShowPasswordForm(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-light border border-gray-700 rounded-xl text-gray-300 hover:bg-gray-800 transition-colors"
-                >
-                  <Mail size={18} />
-                  Sign in with email instead
-                </button>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!isLoginMode && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    required={!isLoginMode}
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@institution.edu"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    required
+                  />
+                </div>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder={isLoginMode ? 'Enter your password' : 'Create a password (min 8 chars)'}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoading ? <Spinner size={18} className="text-white" /> : null}
+                {isLoginMode ? 'Sign In' : 'Create Account'}
+              </button>
+            </form>
+
+            {hasValidGoogleClient && (
+              <>
+                <div className="flex items-center gap-3 my-6">
+                  <div className="flex-1 h-px bg-gray-800" />
+                  <span className="text-gray-500 text-xs">or</span>
+                  <div className="flex-1 h-px bg-gray-800" />
+                </div>
+                <div ref={googleBtnRef} className="w-full" />
+              </>
             )}
 
             <div className="mt-8 pt-6 border-t border-gray-800">
