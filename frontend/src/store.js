@@ -1,81 +1,97 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { authAPI } from './services/api';
 
-export const useStore = create(
-  persist(
-    (set, get) => ({
-      // ── Auth state ──────────────────────────────────────────────────────────
-      user: null,
-      token: null,
-      isLoading: false,
+const getStorageItem = (key) => {
+  try {
+    return sessionStorage.getItem(key);
+  } catch { return null; }
+};
 
-      setUser: (user) => set({ user }),
+const setStorageItem = (key, value) => {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {}
+};
 
-      login: async (email, password) => {
-        set({ isLoading: true });
-        try {
-          const { token, user } = await authAPI.login({ email, password });
-          localStorage.setItem('pp_token', token);
-          set({ user, token, isLoading: false });
-          return { user };
-        } catch (err) {
-          set({ isLoading: false });
-          throw err;
-        }
-      },
+const removeStorageItem = (key) => {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {}
+};
 
-      register: async (name, email, password) => {
-        set({ isLoading: true });
-        try {
-          const { token, user } = await authAPI.register({ name, email, password });
-          localStorage.setItem('pp_token', token);
-          set({ user, token, isLoading: false });
-          return { user };
-        } catch (err) {
-          set({ isLoading: false });
-          throw err;
-        }
-      },
+export const useStore = create((set, get) => ({
+  user: null,
+  token: null,
+  isLoading: false,
 
-      googleLogin: async (credential) => {
-        set({ isLoading: true });
-        try {
-          const { token, user } = await authAPI.googleLogin(credential);
-          localStorage.setItem('pp_token', token);
-          set({ user, token, isLoading: false });
-          return { user };
-        } catch (err) {
-          set({ isLoading: false });
-          throw err;
-        }
-      },
+  setUser: (user) => set({ user }),
 
-      logout: async () => {
-        try { await authAPI.logout(); } catch {}
-        localStorage.removeItem('pp_token');
-        set({ user: null, token: null });
-      },
-
-      refreshUser: async () => {
-        const token = localStorage.getItem('pp_token');
-        if (!token) return;
-        try {
-          const { user } = await authAPI.getMe();
-          set({ user });
-        } catch {
-          localStorage.removeItem('pp_token');
-          set({ user: null, token: null });
-        }
-      },
-
-      // ── UI state ────────────────────────────────────────────────────────────
-      sidebarOpen: true,
-      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-    }),
-    {
-      name: 'pp-store',
-      partialize: (s) => ({ user: s.user, token: s.token }),
+  login: async (email, password) => {
+    set({ isLoading: true });
+    try {
+      const { token, user } = await authAPI.login({ email, password });
+      setStorageItem('pp_token', token);
+      set({ user, token, isLoading: false });
+      return { user };
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
     }
-  )
-);
+  },
+
+  register: async (name, email, password) => {
+    set({ isLoading: true });
+    try {
+      const { token, user } = await authAPI.register({ name, email, password });
+      setStorageItem('pp_token', token);
+      set({ user, token, isLoading: false });
+      return { user };
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  googleLogin: async (credential) => {
+    set({ isLoading: true });
+    try {
+      const { token, user } = await authAPI.googleLogin(credential);
+      setStorageItem('pp_token', token);
+      set({ user, token, isLoading: false });
+      return { user };
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  logout: async () => {
+    try { await authAPI.logout(); } catch {}
+    removeStorageItem('pp_token');
+    set({ user: null, token: null });
+  },
+
+  refreshUser: async () => {
+    const token = getStorageItem('pp_token');
+    if (!token) return;
+    try {
+      const { user } = await authAPI.getMe();
+      set({ user, token });
+    } catch {
+      removeStorageItem('pp_token');
+      set({ user: null, token: null });
+    }
+  },
+
+  initFromStorage: () => {
+    const token = getStorageItem('pp_token');
+    if (token) {
+      set({ token });
+    }
+  },
+
+  sidebarOpen: true,
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+}));
+
+useStore.getState().initFromStorage();

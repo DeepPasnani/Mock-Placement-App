@@ -156,6 +156,8 @@ export default function TestInterface() {
     else if (currentSection < test.sections.length - 1) navigateQ(currentSection + 1, 0);
   };
 
+  const isLastQuestion = currentQ === section.questions.length - 1 && currentSection === test.sections.length - 1;
+
   const goPrev = () => {
     if (currentQ > 0) navigateQ(currentSection, currentQ - 1);
     else if (currentSection > 0) {
@@ -191,8 +193,8 @@ export default function TestInterface() {
           <button onClick={() => setShowPalette(v => !v)} className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hidden md:block">
             {showPalette ? <EyeOff size={16}/> : <Eye size={16}/>}
           </button>
-          <Btn variant="success" onClick={() => setConfirmSubmit(true)}>
-            <CheckCircle size={14}/> Submit
+          <Btn variant="success" onClick={() => setConfirmSubmit(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg">
+            <CheckCircle size={14}/> Submit Test
           </Btn>
         </div>
       </header>
@@ -296,7 +298,11 @@ export default function TestInterface() {
                   </div>
                   <div className="flex gap-2">
                     <Btn variant="ghost" size="sm" onClick={goPrev} className="border-gray-700 text-gray-400 hover:bg-gray-800"><ChevronLeft size={14}/> Prev</Btn>
-                    <Btn variant="primary" size="sm" onClick={goNext}>Next <ChevronRight size={14}/></Btn>
+                    {isLastQuestion ? (
+                      <Btn variant="success" size="sm" onClick={() => setConfirmSubmit(true)} className="bg-emerald-600 hover:bg-emerald-500">Submit <CheckCircle size={14}/></Btn>
+                    ) : (
+                      <Btn variant="primary" size="sm" onClick={goNext}>Next <ChevronRight size={14}/></Btn>
+                    )}
                   </div>
                 </div>
               </div>
@@ -370,7 +376,11 @@ export default function TestInterface() {
                     <div className="flex items-center gap-2">
                       <div className="flex gap-2">
                         <Btn variant="ghost" size="sm" onClick={goPrev} className="border-gray-700 text-gray-400 py-1"><ChevronLeft size={13}/></Btn>
-                        <Btn variant="ghost" size="sm" onClick={goNext} className="border-gray-700 text-gray-400 py-1"><ChevronRight size={13}/></Btn>
+                        {isLastQuestion ? (
+                          <Btn variant="success" size="sm" onClick={() => setConfirmSubmit(true)} className="bg-emerald-600 hover:bg-emerald-500">Submit</Btn>
+                        ) : (
+                          <Btn variant="ghost" size="sm" onClick={goNext} className="border-gray-700 text-gray-400 py-1"><ChevronRight size={13}/></Btn>
+                        )}
                       </div>
                       <Btn variant="success" size="sm" onClick={handleRunCode} disabled={runLoading}>
                         {runLoading ? <Spinner size={12} className="text-white"/> : <Play size={12}/>} Run
