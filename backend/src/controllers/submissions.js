@@ -236,4 +236,16 @@ async function runCode(req, res) {
   res.json(result);
 }
 
-module.exports = { startTest, saveAnswers, submitTest, getMySubmissions, getTestSubmissions, getSubmission, runCode };
+module.exports = { startTest, saveAnswers, submitTest, getMySubmissions, getTestSubmissions, getSubmission, runCode, deleteSubmission };
+
+// DELETE /api/submissions/:id (admin only)
+async function deleteSubmission(req, res) {
+  const { id } = req.params;
+  
+  const { rows } = await query('SELECT id FROM submissions WHERE id = $1', [id]);
+  if (!rows.length) return res.status(404).json({ error: 'Submission not found' });
+  
+  await query('DELETE FROM submissions WHERE id = $1', [id]);
+  
+  res.json({ message: 'Submission deleted successfully' });
+}

@@ -57,6 +57,7 @@ export const submissionsAPI = {
   getMy:       () => api.get('/submissions/my').then(r => r.data),
   getForTest:  (testId) => api.get(`/submissions/test/${testId}`).then(r => r.data),
   get:         (id) => api.get(`/submissions/${id}`).then(r => r.data),
+  delete:      (id) => api.delete(`/submissions/${id}`).then(r => r.data),
 };
 
 // ── Users ─────────────────────────────────────────────────────────────────────

@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { submissionsAPI, testsAPI } from '../../services/api';
-import { Table, Badge, Spinner, Btn } from '../../components/shared/UI';
+import { Table, Badge, Spinner, Btn, Modal } from '../../components/shared/UI';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export default function AdminResults() {
   const { testId } = useParams();
   const [selectedTest, setSelectedTest] = useState(testId || '');
+  const qc = useQueryClient();
+  const [deleteId, setDeleteId] = useState(null);
 
   const { data: testsData } = useQuery('tests', testsAPI.list);
   const { data: subData, isLoading } = useQuery(
@@ -67,7 +70,21 @@ export default function AdminResults() {
       return <span className="text-xs text-gray-500">{m}m {sec}s</span>;
     }},
     { key: 'submitted_at', label: 'Submitted', render: s => s.submitted_at ? <span className="text-xs text-gray-500">{format(new Date(s.submitted_at), 'dd MMM, HH:mm')}</span> : '—' },
+    { key: 'actions', label: '', render: s => (
+      <button onClick={() => setDeleteId(s.id)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500">
+        <Trash2 size={14}/>
+      </button>
+    )},
   ];
+
+  const deleteMut = useMutation(submissionsAPI.delete, {
+    onSuccess: () => {
+      toast.success('Submission deleted');
+      setDeleteId(null);
+      qc.invalidateQueries(['submissions', selectedTest]);
+    },
+    onError: () => toast.error('Failed to delete'),
+  });
 
   // inject rank index for table
   const rankedSubs = subs.map((s, i) => ({ ...s, _rank: i }));
@@ -138,6 +155,16 @@ export default function AdminResults() {
           <Table columns={columns} data={rankedSubs} emptyMessage="No submissions for this test yet." />
         </>
       )}
+
+      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Submission?" width="max-w-sm">
+        <p className="text-gray-600 mb-4">This will permanently remove this test attempt. This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end">
+          <Btn variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Btn>
+          <Btn variant="danger" onClick={() => deleteMut.mutate(deleteId)} disabled={deleteMut.isLoading}>
+            {deleteMut.isLoading ? 'Deleting...' : 'Delete'}
+          </Btn>
+        </div>
+      </Modal>
     </div>
   );
 }

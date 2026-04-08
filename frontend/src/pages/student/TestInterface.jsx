@@ -7,7 +7,7 @@ import Timer from '../../components/shared/Timer';
 import { Btn, Modal, Alert, Spinner } from '../../components/shared/UI';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { ChevronLeft, ChevronRight, Flag, Play, CheckCircle, XCircle, Terminal, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, Play, CheckCircle, XCircle, Terminal, Eye, EyeOff, Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 
 const LANG_MAP = { python: 'python', javascript: 'javascript', java: 'java', cpp: 'cpp' };
 const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
@@ -30,7 +30,11 @@ export default function TestInterface() {
   const [showPalette, setShowPalette] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [testStarted, setTestStarted] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showTabWarning, setShowTabWarning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const autoSaveRef = useRef(null);
+  const MAX_TAB_SWITCHES = 5;
 
   // Load test data
   const { data: testData, isLoading: loadingTest } = useQuery(['test-full', testId], () => testsAPI.get(testId));
@@ -98,6 +102,48 @@ export default function TestInterface() {
     const handler = (e) => { e.preventDefault(); e.returnValue = 'Are you sure? Your progress is auto-saved.'; };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  // Track tab switches and auto-submit if exceeded
+  useEffect(() => {
+    if (!testStarted) return;
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const newCount = tabSwitchCount + 1;
+        setTabSwitchCount(newCount);
+        
+        if (newCount > MAX_TAB_SWITCHES) {
+          toast.error('Tab switch limit exceeded! Submitting test...');
+          handleSubmit();
+        } else {
+          setShowTabWarning(true);
+          setTimeout(() => setShowTabWarning(false), 3000);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [testStarted, tabSwitchCount]);
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -190,6 +236,16 @@ export default function TestInterface() {
         <Timer totalSeconds={remainingSeconds} onExpire={handleSubmit} testId={testId} token={token} />
 
         <div className="flex items-center gap-2">
+          {/* Tab switch warning */}
+          {tabSwitchCount > 0 && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs ${tabSwitchCount > MAX_TAB_SWITCHES - 2 ? 'bg-red-900 text-red-300' : 'bg-yellow-900 text-yellow-300'}`}>
+              <AlertTriangle size={12}/> {MAX_TAB_SWITCHES - tabSwitchCount} switches left
+            </div>
+          )}
+          
+          <button onClick={toggleFullscreen} className="p-2 rounded-lg hover:bg-gray-800 text-gray-400" title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+            {isFullscreen ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
+          </button>
           <button onClick={() => setShowPalette(v => !v)} className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hidden md:block">
             {showPalette ? <EyeOff size={16}/> : <Eye size={16}/>}
           </button>

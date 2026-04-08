@@ -33,6 +33,7 @@ router.post('/submissions/submit',      authenticate, subCtrl.submitTest);
 router.post('/submissions/run-code',    authenticate, codeLimiter, subCtrl.runCode);
 router.get ('/submissions/my',          authenticate, subCtrl.getMySubmissions);
 router.get ('/submissions/test/:testId',authenticate, requireAdmin, subCtrl.getTestSubmissions);
+router.delete('/submissions/:id',     authenticate, requireAdmin, subCtrl.deleteSubmission);
 router.get ('/submissions/:id',         authenticate, subCtrl.getSubmission);
 
 // ── Users ─────────────────────────────────────────────────────────────────────
