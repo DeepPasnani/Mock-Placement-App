@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 import { Spinner } from '../components/shared/UI';
-import { GraduationCap, Code, Users, TrendingUp, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { GraduationCap, Code, Users, TrendingUp, Mail, Lock, UserPlus, LogIn, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const googleBtnRef = useRef(null);
   const [error, setError] = useState('');
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
 
   const from = location.state?.from?.pathname || null;
@@ -191,14 +192,21 @@ export default function LoginPage() {
                 <div className="relative">
                   <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder={isLoginMode ? 'Enter your password' : 'Create a password (min 8 chars)'}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    className="w-full pl-10 pr-10 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-400"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
               <button
@@ -210,6 +218,15 @@ export default function LoginPage() {
                 {isLoginMode ? 'Sign In' : 'Create Account'}
               </button>
             </form>
+
+            {isLoginMode && (
+              <div className="mt-4 p-3 bg-surface-light rounded-xl">
+                <p className="text-xs text-gray-500 text-center">
+                  <strong className="text-gray-400">Demo Credentials:</strong><br />
+                  Admin: <code className="text-primary">admin@college.edu</code> / <code className="text-primary">Admin@123</code>
+                </p>
+              </div>
+            )}
 
             {hasValidGoogleClient && (
               <>
