@@ -60,7 +60,7 @@ services:
         VITE_APP_NAME: CampusTrack
     container_name: pp_frontend
     ports:
-      - "6666:80"
+      - "6547:80"
     depends_on:
       - backend
     restart: unless-stopped
