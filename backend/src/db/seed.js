@@ -8,9 +8,13 @@ async function seed() {
   const hash = await bcrypt.hash('Admin@123', 12);
 
   await query(`
-    INSERT INTO users (name, email, password_hash, role)
-    VALUES ('Super Admin', 'admin@college.edu', $1, 'admin')
-    ON CONFLICT (email) DO NOTHING;
+    INSERT INTO users (name, email, password_hash, role, is_active)
+    VALUES ('Super Admin', 'admin@college.edu', $1, 'admin', true)
+    ON CONFLICT (email) DO UPDATE SET
+      name = EXCLUDED.name,
+      password_hash = EXCLUDED.password_hash,
+      role = 'admin',
+      is_active = true;
   `, [hash]);
 
   console.log('✅ Seed complete.');
