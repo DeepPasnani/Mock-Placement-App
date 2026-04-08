@@ -37,7 +37,7 @@ services:
     container_name: pp_backend
     env_file: ./backend/.env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres_password_change_me@postgres:5433/placementpro
+      DATABASE_URL: postgresql://postgres:postgres_password_change_me@postgres:5432/placementpro
       REDIS_URL: redis://redis:6379
       NODE_ENV: production
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}

@@ -2,41 +2,65 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 import { Spinner } from '../components/shared/UI';
-import { GraduationCap, Code, Users, TrendingUp } from 'lucide-react';
+import { GraduationCap, Code, Users, TrendingUp, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-  const { googleLogin, isLoading } = useStore();
+  const { googleLogin, login, isLoading } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
   const googleBtnRef = useRef(null);
   const [error, setError] = useState('');
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [googleLoaded, setGoogleLoaded] = useState(false);
 
   const from = location.state?.from?.pathname || null;
 
   useEffect(() => {
-    if (!window.google || !googleBtnRef.current) return;
+    const checkGoogle = setInterval(() => {
+      if (window.google) {
+        setGoogleLoaded(true);
+        clearInterval(checkGoogle);
+        initializeGoogle();
+      }
+    }, 100);
+    
+    setTimeout(() => {
+      clearInterval(checkGoogle);
+      if (!window.google) {
+        setGoogleLoaded(true);
+      }
+    }, 3000);
+
+    return () => clearInterval(checkGoogle);
+  }, []);
+
+  const initializeGoogle = () => {
+    if (!googleBtnRef.current) return;
     
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      setError('Google sign-in not configured. Please contact administrator.');
-      return;
-    }
+    if (!clientId) return;
 
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleGoogleResponse,
-    });
-    
-    window.google.accounts.id.renderButton(googleBtnRef.current, {
-      type: 'filled',
-      theme: 'filled_blue',
-      size: 'large',
-      width: '100%',
-      text: 'signin_with',
-      shape: 'rectangular',
-    });
-  }, []);
+    try {
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleResponse,
+      });
+      
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'filled',
+        theme: 'filled_blue',
+        size: 'large',
+        width: '100%',
+        text: 'signin_with',
+        shape: 'rectangular',
+      });
+    } catch (err) {
+      console.error('Google initialization error:', err);
+    }
+  };
 
   const handleGoogleResponse = async ({ credential }) => {
     setError('');
@@ -49,12 +73,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const { user } = await login(email, password);
+      toast.success(`Welcome back, ${user.name || user.email}!`);
+      navigate(from || (user.role === 'admin' ? '/admin' : '/student'), { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid credentials');
+    }
+  };
+
   const features = [
     { icon: Code, label: 'Code Execution', desc: 'Run code in Python, Java, C & C++' },
     { icon: Users, label: 'Auto Proctoring', desc: 'AI-powered cheating detection' },
     { icon: TrendingUp, label: 'Instant Results', desc: 'Real-time scoring & analytics' },
     { icon: GraduationCap, label: 'Scale Ready', desc: 'Handle 1000+ concurrent users' },
   ];
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
     <div className="min-h-screen flex bg-[#0a0a0a] relative overflow-hidden">
@@ -63,7 +101,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(225,29,72,0.15),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial_gradient(circle_at_70%_80%,rgba(99,102,241,0.15),transparent_50%)]" />
         
         <div className="relative z-10 flex flex-col justify-center px-16 py-20 w-full">
           <div className="mb-16">
@@ -109,7 +147,9 @@ export default function LoginPage() {
           <div className="glass rounded-3xl p-8 lg:p-10">
             <div className="text-center mb-8">
               <h2 className="font-display text-2xl font-bold text-white mb-2">Welcome back</h2>
-              <p className="text-gray-500">Sign in with your institutional account</p>
+              <p className="text-gray-500">
+                {showEmailLogin ? 'Sign in with your credentials' : 'Sign in with your institutional account'}
+              </p>
             </div>
 
             {error && (
@@ -118,18 +158,75 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <div ref={googleBtnRef} className="w-full" />
-              
-              {!import.meta.env.VITE_GOOGLE_CLIENT_ID && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                  <p className="text-amber-400 text-sm text-center">
-                    Google Sign-In not configured.<br />
-                    <span className="text-gray-500">Set VITE_GOOGLE_CLIENT_ID in environment variables.</span>
-                  </p>
+            {!showEmailLogin ? (
+              <div className="space-y-4">
+                {clientId && clientId !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' ? (
+                  <div ref={googleBtnRef} className="w-full" />
+                ) : (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                    <p className="text-amber-400 text-sm text-center">
+                      Google Sign-In not configured.<br />
+                      <button 
+                        onClick={() => setShowEmailLogin(true)} 
+                        className="text-primary hover:underline mt-2 inline-block"
+                      >
+                        Sign in with email instead
+                      </button>
+                    </p>
+                  </div>
+                )}
+                
+                {!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' ? (
+                  <button
+                    onClick={() => setShowEmailLogin(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-light border border-gray-700 rounded-xl text-gray-300 hover:bg-gray-800 transition-colors"
+                  >
+                    <Mail size={18} />
+                    Sign in with email
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@institution.edu"
+                    className="w-full px-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    required
+                  />
                 </div>
-              )}
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-gray-600"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <Spinner size={18} className="text-white" /> : null}
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailLogin(false)}
+                  className="w-full text-gray-500 text-sm hover:text-gray-400 transition-colors"
+                >
+                  ← Back to Google Sign-In
+                </button>
+              </form>
+            )}
 
             <div className="mt-8 pt-6 border-t border-gray-800">
               <p className="text-center text-gray-600 text-xs">
