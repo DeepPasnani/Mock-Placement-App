@@ -59,8 +59,9 @@ export default function TestInterface() {
   const submitMut = useMutation(submissionsAPI.submit, {
     onSuccess: (result) => {
       clearInterval(autoSaveRef.current);
-      navigate('/student/results', { state: { result, testTitle: testData?.title } });
+      setSubmitting(false);
       toast.success('Test submitted successfully!');
+      navigate('/student/results');
     },
     onError: (e) => {
       setSubmitting(false);
