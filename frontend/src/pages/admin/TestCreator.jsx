@@ -246,8 +246,12 @@ export default function TestCreator() {
       onSuccess: (data) => {
         setForm({
           title: data.title, description: data.description, status: data.status,
-          startTime: data.start_time ? data.start_time.slice(0,16) : '',
-          endTime:   data.end_time   ? data.end_time.slice(0,16)   : '',
+          startTime: data.start_time 
+            ? new Date(new Date(data.start_time).getTime() - new Date(data.start_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) 
+            : '',
+          endTime:   data.end_time 
+            ? new Date(new Date(data.end_time).getTime() - new Date(data.end_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) 
+            : '',
           durationMinutes: data.duration_minutes,
           settings: data.settings || DEFAULT_TEST.settings,
           sections: (data.sections || []).map(s => ({
@@ -311,7 +315,7 @@ export default function TestCreator() {
     const convertToUTC = (localDateTime) => {
       if (!localDateTime) return null;
       const date = new Date(localDateTime);
-      return date.toISOString();
+      return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
     };
     
     const payload = {

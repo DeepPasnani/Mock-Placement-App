@@ -61,7 +61,10 @@ export default function TestInterface() {
       clearInterval(autoSaveRef.current);
       setSubmitting(false);
       toast.success('Test submitted successfully!');
-      navigate('/student/results');
+      // Small delay then navigate
+      setTimeout(() => {
+        navigate('/student/results', { replace: true });
+      }, 500);
     },
     onError: (e) => {
       setSubmitting(false);
