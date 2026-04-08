@@ -56,16 +56,16 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      let user;
+      let result;
       if (isLoginMode) {
-        const result = await login(formData.email, formData.password);
-        user = result.user;
-        toast.success(`Welcome back, ${user.name || user.email}!`);
+        result = await login(formData.email, formData.password);
+        toast.success(`Welcome back, ${result.user.name || result.user.email}!`);
       } else {
-        user = await register(formData.name, formData.email, formData.password);
-        toast.success(`Account created! Welcome, ${user.name}!`);
+        result = await register(formData.name, formData.email, formData.password);
+        toast.success(`Account created! Welcome, ${result.user.name}!`);
       }
-      navigate(from || (user.role === 'admin' ? '/admin' : '/student'), { replace: true });
+      const targetPath = result.user.role === 'admin' ? '/admin' : '/student';
+      navigate(targetPath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || (isLoginMode ? 'Invalid credentials' : 'Registration failed'));
     }
