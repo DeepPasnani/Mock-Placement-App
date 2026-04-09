@@ -22,7 +22,12 @@ function RequireAuth({ children, role }) {
   const { user } = useStore();
   const location = useLocation();
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (role && user.role !== role) return <Navigate to={user.role === 'admin' ? '/admin' : '/student'} replace />;
+  if (role) {
+    const allowedRoles = role === 'admin' ? ['admin', 'super_admin'] : [role];
+    if (!allowedRoles.includes(user.role)) {
+      return <Navigate to={user.role === 'admin' || user.role === 'super_admin' ? '/admin' : '/student'} replace />;
+    }
+  }
   return children;
 }
 
@@ -36,7 +41,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/student'} replace /> : <LoginPage />} />
+      <Route path="/login" element={user ? <Navigate to={user.role === 'admin' || user.role === 'super_admin' ? '/admin' : '/student'} replace /> : <LoginPage />} />
 
       {/* Admin routes */}
       <Route path="/admin" element={<RequireAuth role="admin"><AdminLayout /></RequireAuth>}>
@@ -61,7 +66,7 @@ export default function App() {
       <Route path="/test/:testId" element={<RequireAuth role="student"><TestInterface /></RequireAuth>} />
 
       {/* Redirects */}
-      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/student') : '/login'} replace />} />
+      <Route path="/" element={<Navigate to={user ? (user.role === 'admin' || user.role === 'super_admin' ? '/admin' : '/student') : '/login'} replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

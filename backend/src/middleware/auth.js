@@ -23,7 +23,7 @@ const authenticate = async (req, res, next) => {
 
     if (!user) {
       const { rows } = await query(
-        'SELECT id, name, email, role, is_active, is_super_admin, avatar_url, branch, roll_number FROM users WHERE id = $1',
+        'SELECT id, name, email, role, is_active, avatar_url, branch, roll_number FROM users WHERE id = $1',
         [decoded.userId]
       );
       if (!rows.length) return res.status(401).json({ error: 'User not found' });
@@ -42,8 +42,15 @@ const authenticate = async (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (req.user?.role !== 'admin') {
+  if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
     return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+const requireSuperAdmin = (req, res, next) => {
+  if (req.user?.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super Admin access required' });
   }
   next();
 };
@@ -53,4 +60,4 @@ const requireStudent = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, requireAdmin, requireStudent };
+module.exports = { authenticate, requireAdmin, requireSuperAdmin, requireStudent };

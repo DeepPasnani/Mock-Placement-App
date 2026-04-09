@@ -13,7 +13,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', department: '' });
+
+  const departments = [
+    'Computer Engineering',
+    'Computer Science and Design',
+    'Aeronautical Engineering',
+    'Electrical Engineering',
+    'Electronics and Communication Engineering',
+    'Civil Engineering'
+  ];
 
   const from = location.state?.from?.pathname || null;
 
@@ -62,7 +71,7 @@ export default function LoginPage() {
         result = await login(formData.email, formData.password);
         toast.success(`Welcome back, ${result.user.name || result.user.email}!`);
       } else {
-        result = await register(formData.name, formData.email, formData.password);
+        result = await register(formData.name, formData.email, formData.password, formData.department);
         toast.success(`Account created! Welcome, ${result.user.name}!`);
       }
       const targetPath = result.user.role === 'admin' ? '/admin' : '/student';
@@ -187,6 +196,23 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
+              {!isLoginMode && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-2">Department</label>
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-800 rounded-xl text-sm bg-surface-light text-white outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    required={!isLoginMode}
+                  >
+                    <option value="">Select your department</option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-2">Password</label>
                 <div className="relative">

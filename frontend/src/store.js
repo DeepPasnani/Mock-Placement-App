@@ -24,10 +24,10 @@ export const useStore = create(
         }
       },
 
-      register: async (name, email, password) => {
+      register: async (name, email, password, department) => {
         set({ isLoading: true });
         try {
-          const { token, user } = await authAPI.register({ name, email, password });
+          const { token, user } = await authAPI.register({ name, email, password, department });
           localStorage.setItem('pp_token', token);
           set({ user, token, isLoading: false });
           return { user };

@@ -68,6 +68,7 @@ export const usersAPI = {
   bulkImport:  (data) => api.post('/users/bulk-import', data).then(r => r.data),
   update:      (id, data) => api.patch(`/users/${id}`, data).then(r => r.data),
   delete:      (id) => api.delete(`/users/${id}`).then(r => r.data),
+  listAdmins:  () => api.get('/admins').then(r => r.data),
 };
 
 // ── Upload ────────────────────────────────────────────────────────────────────

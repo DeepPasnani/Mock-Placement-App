@@ -1,35 +1,39 @@
 const { query, getClient } = require('../db');
 const { cacheGet, cacheSet, cacheDel } = require('../db/redis');
 
-// ── GET /api/tests (admin: all; student: published & accessible)
+// ── GET /api/tests (admin: own only; super_admin: all; student: published + their department)
 async function listTests(req, res) {
-  const isAdmin = req.user.role === 'admin';
+  const userRole = req.user.role;
   const userId = req.user.id;
-  
-  const isSuperAdmin = req.user.is_super_admin === true;
+  const userDepartment = req.user.department;
 
-  let queryText = `
+  let whereClause = '';
+  
+  if (userRole === 'super_admin') {
+    // Super admin sees all tests
+    whereClause = '';
+  } else if (userRole === 'admin') {
+    // Admin sees only their own tests
+    whereClause = `WHERE t.created_by = '${userId}'`;
+  } else if (userRole === 'student') {
+    // Student sees only published tests for their department
+    if (userDepartment) {
+      whereClause = `WHERE t.status = 'published' AND t.department = '${userDepartment}'`;
+    } else {
+      whereClause = `WHERE t.status = 'published' AND t.department = 'all'`; // fallback
+    }
+  }
+
+  const { rows } = await query(`
     SELECT t.*,
       u.name as created_by_name,
       (SELECT COUNT(*) FROM sections s WHERE s.test_id = t.id) as section_count,
-      (SELECT COUNT(*) FROM sub WHERE sub.test_id = t.id) as submission_count
+      (SELECT COUNT(*) FROM submissions sub WHERE sub.test_id = t.id) as submission_count
     FROM tests t
     LEFT JOIN users u ON t.created_by = u.id
-  `;
-
-  if (isAdmin) {
-    if (isSuperAdmin) {
-      queryText += ' ORDER BY t.created_at DESC';
-    } else {
-      queryText += ` WHERE t.created_by = $1 OR $1 = ANY(t.collaborators) ORDER BY t.created_at DESC`;
-    }
-  } else {
-    queryText += " WHERE t.status = 'published' ORDER BY t.created_at DESC";
-  }
-
-  const { rows } = isAdmin && !isSuperAdmin 
-    ? await query(queryText, [userId])
-    : await query(queryText);
+    ${whereClause}
+    ORDER BY t.created_at DESC
+  `);
 
   res.json({ tests: rows });
 }
@@ -37,7 +41,9 @@ async function listTests(req, res) {
 // ── GET /api/tests/:id (with all sections + questions)
 async function getTest(req, res) {
   const { id } = req.params;
-  const isAdmin = req.user.role === 'admin';
+  const userRole = req.user.role;
+  const userDepartment = req.user.department;
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
 
   const cacheKey = `test:${id}:full`;
   if (!isAdmin) {
@@ -49,7 +55,16 @@ async function getTest(req, res) {
   if (!testRows.length) return res.status(404).json({ error: 'Test not found' });
   const test = testRows[0];
 
-  if (!isAdmin && test.status !== 'published') return res.status(403).json({ error: 'Test not available' });
+  // Check access permissions
+  if (!isAdmin) {
+    if (test.status !== 'published') {
+      return res.status(403).json({ error: 'Test not available' });
+    }
+    // Check department match for students
+    if (userDepartment && test.department !== userDepartment && test.department !== 'all') {
+      return res.status(403).json({ error: 'Test not available for your department' });
+    }
+  }
 
   const { rows: sections } = await query(
     'SELECT * FROM sections WHERE test_id = $1 ORDER BY order_index',
@@ -85,19 +100,32 @@ async function getTest(req, res) {
 
 // ── POST /api/tests (admin only)
 async function createTest(req, res) {
-  const { title, description, status, startTime, endTime, durationMinutes, settings, sections, collaborators } = req.body;
+  const { title, description, status, startTime, endTime, durationMinutes, settings, sections, department } = req.body;
 
   if (!title) return res.status(400).json({ error: 'Title required' });
+  if (!department) return res.status(400).json({ error: 'Department is required' });
+
+  const validDepartments = [
+    'Computer Engineering',
+    'Computer Science and Design',
+    'Aeronautical Engineering',
+    'Electrical Engineering',
+    'Electronics and Communication Engineering',
+    'Civil Engineering'
+  ];
+  if (!validDepartments.includes(department)) {
+    return res.status(400).json({ error: 'Invalid department' });
+  }
 
   const client = await getClient();
   try {
     await client.query('BEGIN');
 
     const { rows: [test] } = await client.query(
-      `INSERT INTO tests (title, description, status, start_time, end_time, duration_minutes, settings, created_by, collaborators)
+      `INSERT INTO tests (title, description, status, start_time, end_time, duration_minutes, department, settings, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [title, description, status || 'draft', startTime || null, endTime || null,
-       durationMinutes || 90, JSON.stringify(settings || {}), req.user.id, collaborators || []]
+       durationMinutes || 90, department, JSON.stringify(settings || {}), req.user.id]
     );
 
     if (sections?.length) {
@@ -149,13 +177,13 @@ async function createTest(req, res) {
 // ── PUT /api/tests/:id
 async function updateTest(req, res) {
   const { id } = req.params;
-  const { title, description, status, startTime, endTime, durationMinutes, settings, collaborators } = req.body;
+  const { title, description, status, startTime, endTime, durationMinutes, settings } = req.body;
 
   const { rows } = await query(
     `UPDATE tests SET title=$1, description=$2, status=$3, start_time=$4, end_time=$5,
-     duration_minutes=$6, settings=$7, collaborators=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
+     duration_minutes=$6, settings=$7, updated_at=NOW() WHERE id=$8 RETURNING *`,
     [title, description, status, startTime || null, endTime || null,
-     durationMinutes, JSON.stringify(settings || {}), collaborators || [], id]
+     durationMinutes, JSON.stringify(settings || {}), id]
   );
 
   if (!rows.length) return res.status(404).json({ error: 'Test not found' });

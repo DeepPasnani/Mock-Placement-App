@@ -107,13 +107,22 @@ module.exports = { login, googleLogin, logout, getMe, changePassword, register }
 
 // POST /api/auth/register
 async function register(req, res) {
-  const { name, email, password } = req.body;
+  const { name, email, password, department } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password are required' });
   }
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
   }
+
+  const validDepartments = [
+    'Computer Engineering',
+    'Computer Science and Design',
+    'Aeronautical Engineering',
+    'Electrical Engineering',
+    'Electronics and Communication Engineering',
+    'Civil Engineering'
+  ];
 
   const emailLower = email.toLowerCase().trim();
 
@@ -126,8 +135,8 @@ async function register(req, res) {
   const hash = await bcrypt.hash(password, 12);
   
   const { rows } = await query(
-    'INSERT INTO users (name, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, avatar_url',
-    [name.trim(), emailLower, hash, 'student', true]
+    'INSERT INTO users (name, email, password_hash, role, department, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, department, avatar_url',
+    [name.trim(), emailLower, hash, 'student', department || null, true]
   );
 
   const user = rows[0];
@@ -135,6 +144,6 @@ async function register(req, res) {
   
   res.status(201).json({ 
     token, 
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar_url: user.avatar_url }
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department, avatar_url: user.avatar_url }
   });
 }

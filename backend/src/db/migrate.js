@@ -13,14 +13,14 @@ async function migrate() {
       name VARCHAR(255),
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash VARCHAR(255),
-      role VARCHAR(20) NOT NULL DEFAULT 'student' CHECK (role IN ('admin', 'student')),
+      role VARCHAR(20) NOT NULL DEFAULT 'student' CHECK (role IN ('super_admin', 'admin', 'student')),
+      department VARCHAR(100),
       google_id VARCHAR(255) UNIQUE,
       avatar_url TEXT,
       branch VARCHAR(100),
       roll_number VARCHAR(50),
       created_by UUID REFERENCES users(id) ON DELETE SET NULL,
       is_active BOOLEAN DEFAULT true,
-      is_super_admin BOOLEAN DEFAULT false,
       last_login TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -35,9 +35,9 @@ async function migrate() {
       start_time TIMESTAMPTZ,
       end_time TIMESTAMPTZ,
       duration_minutes INTEGER NOT NULL DEFAULT 90,
+      department VARCHAR(100) NOT NULL,
       settings JSONB DEFAULT '{}',
       created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-      collaborators TEXT[] DEFAULT '{}',
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );

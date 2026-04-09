@@ -1,21 +1,26 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
-import { GraduationCap, LayoutDashboard, FileText, BarChart2, Users, UserCog, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { GraduationCap, LayoutDashboard, FileText, BarChart2, Users, UserCog, LogOut, Menu, X, Crown } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-
-const NAV = [
-  { to: '/admin',         label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/tests',   label: 'Tests',     icon: FileText },
-  { to: '/admin/results', label: 'Results',   icon: BarChart2 },
-  { to: '/admin/users',   label: 'Students',  icon: Users },
-  { to: '/admin/admins',  label: 'Admins',    icon: UserCog },
-];
 
 export default function AdminLayout() {
   const { user, logout } = useStore();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const NAV = useMemo(() => {
+    const items = [
+      { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/admin/tests', label: 'Tests', icon: FileText },
+      { to: '/admin/results', label: 'Results', icon: BarChart2 },
+      { to: '/admin/users', label: 'Students', icon: Users },
+    ];
+    if (user?.role === 'super_admin') {
+      items.push({ to: '/admin/admins', label: 'Admins', icon: Crown });
+    }
+    return items;
+  }, [user?.role]);
 
   const handleLogout = async () => {
     await logout();

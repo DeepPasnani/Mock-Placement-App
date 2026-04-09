@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { authLimiter, codeLimiter } = require('../middleware/rateLimit');
 const { upload } = require('../services/cloudinary');
 
@@ -39,10 +39,13 @@ router.get ('/submissions/:id',         authenticate, subCtrl.getSubmission);
 // ── Users ─────────────────────────────────────────────────────────────────────
 router.get ('/users',               authenticate, requireAdmin, userCtrl.listUsers);
 router.get ('/users/stats',         authenticate, requireAdmin, userCtrl.getStats);
-router.post('/users/admin',         authenticate, requireAdmin, userCtrl.createAdmin);
+router.post('/users/admin',         authenticate, requireSuperAdmin, userCtrl.createAdmin);
 router.post('/users/bulk-import',   authenticate, requireAdmin, userCtrl.bulkImport);
 router.patch('/users/:id',          authenticate, requireAdmin, userCtrl.updateUser);
-router.delete('/users/:id',         authenticate, requireAdmin, userCtrl.deleteUser);
+router.delete('/users/:id',         authenticate, requireSuperAdmin, userCtrl.deleteUser);
+
+// ── Admins (for super admin) ─────────────────────────────────────────────────
+router.get ('/admins',              authenticate, requireSuperAdmin, userCtrl.listAdmins);
 
 // ── Image Upload ──────────────────────────────────────────────────────────────
 router.post('/upload/image',           authenticate, requireAdmin, upload.single('image'), upCtrl.uploadImage);
