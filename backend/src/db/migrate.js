@@ -20,6 +20,7 @@ async function migrate() {
       roll_number VARCHAR(50),
       created_by UUID REFERENCES users(id) ON DELETE SET NULL,
       is_active BOOLEAN DEFAULT true,
+      is_super_admin BOOLEAN DEFAULT false,
       last_login TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()

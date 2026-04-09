@@ -25,18 +25,23 @@ async function listUsers(req, res) {
 
 // POST /api/users/admin (create admin account)
 async function createAdmin(req, res) {
-  const { name, email, password } = req.body;
+  const { name, email, password, isSuperAdmin } = req.body;
   if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password required' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  // Only super admins can create other super admins
+  if (isSuperAdmin && !req.user.is_super_admin) {
+    return res.status(403).json({ error: 'Only super admins can create other super admins' });
+  }
 
   const existing = await query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
   if (existing.rows.length) return res.status(400).json({ error: 'Email already registered' });
 
   const hash = await bcrypt.hash(password, 12);
   const { rows: [user] } = await query(
-    `INSERT INTO users (name, email, password_hash, role, created_by)
-     VALUES ($1,$2,$3,'admin',$4) RETURNING id, name, email, role, created_at`,
-    [name, email.toLowerCase(), hash, req.user.id]
+    `INSERT INTO users (name, email, password_hash, role, created_by, is_super_admin)
+     VALUES ($1,$2,$3,'admin',$4,$5) RETURNING id, name, email, role, is_super_admin, created_at`,
+    [name, email.toLowerCase(), hash, req.user.id, isSuperAdmin || false]
   );
   res.status(201).json({ user });
 }
@@ -93,7 +98,7 @@ async function deleteUser(req, res) {
   const { rows } = await query('SELECT email FROM users WHERE id = $1', [id]);
   if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
   
-  if (rows[0].email === 'deeppasnani@yahoo.com') {
+  if (rows[0].email === 'deeppasnani@yahoo.com' || rows[0].is_super_admin === true) {
     return res.status(403).json({ error: 'Cannot delete super admin account' });
   }
   

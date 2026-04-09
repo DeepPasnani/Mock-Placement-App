@@ -6,7 +6,7 @@ async function listTests(req, res) {
   const isAdmin = req.user.role === 'admin';
   const userId = req.user.id;
   
-  const isSuperAdmin = req.user.email === 'deeppasnani@yahoo.com';
+  const isSuperAdmin = req.user.is_super_admin === true;
 
   let queryText = `
     SELECT t.*,
