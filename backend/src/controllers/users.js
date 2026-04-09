@@ -89,6 +89,14 @@ async function updateUser(req, res) {
 async function deleteUser(req, res) {
   const { id } = req.params;
   if (id === req.user.id) return res.status(400).json({ error: 'Cannot delete your own account' });
+  
+  const { rows } = await query('SELECT email FROM users WHERE id = $1', [id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+  
+  if (rows[0].email === 'deeppasnani@yahoo.com') {
+    return res.status(403).json({ error: 'Cannot delete super admin account' });
+  }
+  
   await query('DELETE FROM users WHERE id=$1', [id]);
   await cacheDel(`user:${id}`);
   res.json({ message: 'User deleted' });

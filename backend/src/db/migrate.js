@@ -36,6 +36,7 @@ async function migrate() {
       duration_minutes INTEGER NOT NULL DEFAULT 90,
       settings JSONB DEFAULT '{}',
       created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      collaborators TEXT[] DEFAULT '{}',
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );

@@ -12,6 +12,7 @@ const genId = () => `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 const DEFAULT_TEST = {
   title: '', description: '', status: 'draft',
   startTime: '', endTime: '', durationMinutes: 90,
+  collaborators: [],
   settings: {
     shuffleQuestions: true, shuffleOptions: true,
     showResults: 'after_submit', passingScore: 40,
@@ -253,6 +254,7 @@ export default function TestCreator() {
             ? new Date(new Date(data.end_time).getTime() - new Date(data.end_time).getTimezoneOffset() * 60000).toISOString().slice(0, 16) 
             : '',
           durationMinutes: data.duration_minutes,
+          collaborators: data.collaborators || [],
           settings: data.settings || DEFAULT_TEST.settings,
           sections: (data.sections || []).map(s => ({
             ...s,
@@ -324,6 +326,7 @@ export default function TestCreator() {
       startTime: convertToUTC(form.startTime), 
       endTime: convertToUTC(form.endTime),
       durationMinutes: form.durationMinutes,
+      collaborators: form.collaborators,
       settings: form.settings,
       sections: form.sections.map(s => ({
         id: s.id, name: s.name, type: s.type,
@@ -385,6 +388,15 @@ export default function TestCreator() {
             <Input label="Start Date & Time" type="datetime-local" value={form.startTime} onChange={e => upd('startTime', e.target.value)} />
             <Input label="End Date & Time" type="datetime-local" value={form.endTime} onChange={e => upd('endTime', e.target.value)} />
             <Input label="Duration (minutes)" type="number" min={10} max={480} value={form.durationMinutes} onChange={e => upd('durationMinutes', +e.target.value)} />
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-gray-600 mb-2">Collaborators (comma-separated email addresses)</label>
+            <Input 
+              value={form.collaborators?.join(', ') || ''} 
+              onChange={e => upd('collaborators', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+              placeholder="email1@example.com, email2@example.com"
+            />
           </div>
 
           <div className="border-t border-gray-100 pt-5">

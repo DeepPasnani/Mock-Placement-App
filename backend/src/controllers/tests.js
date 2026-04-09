@@ -4,17 +4,32 @@ const { cacheGet, cacheSet, cacheDel } = require('../db/redis');
 // ── GET /api/tests (admin: all; student: published & accessible)
 async function listTests(req, res) {
   const isAdmin = req.user.role === 'admin';
+  const userId = req.user.id;
+  
+  const isSuperAdmin = req.user.email === 'deeppasnani@yahoo.com';
 
-  const { rows } = await query(`
+  let queryText = `
     SELECT t.*,
       u.name as created_by_name,
       (SELECT COUNT(*) FROM sections s WHERE s.test_id = t.id) as section_count,
-      (SELECT COUNT(*) FROM submissions sub WHERE sub.test_id = t.id) as submission_count
+      (SELECT COUNT(*) FROM sub WHERE sub.test_id = t.id) as submission_count
     FROM tests t
     LEFT JOIN users u ON t.created_by = u.id
-    ${isAdmin ? '' : "WHERE t.status = 'published'"}
-    ORDER BY t.created_at DESC
-  `);
+  `;
+
+  if (isAdmin) {
+    if (isSuperAdmin) {
+      queryText += ' ORDER BY t.created_at DESC';
+    } else {
+      queryText += ` WHERE t.created_by = $1 OR $1 = ANY(t.collaborators) ORDER BY t.created_at DESC`;
+    }
+  } else {
+    queryText += " WHERE t.status = 'published' ORDER BY t.created_at DESC";
+  }
+
+  const { rows } = isAdmin && !isSuperAdmin 
+    ? await query(queryText, [userId])
+    : await query(queryText);
 
   res.json({ tests: rows });
 }
@@ -70,7 +85,7 @@ async function getTest(req, res) {
 
 // ── POST /api/tests (admin only)
 async function createTest(req, res) {
-  const { title, description, status, startTime, endTime, durationMinutes, settings, sections } = req.body;
+  const { title, description, status, startTime, endTime, durationMinutes, settings, sections, collaborators } = req.body;
 
   if (!title) return res.status(400).json({ error: 'Title required' });
 
@@ -79,10 +94,10 @@ async function createTest(req, res) {
     await client.query('BEGIN');
 
     const { rows: [test] } = await client.query(
-      `INSERT INTO tests (title, description, status, start_time, end_time, duration_minutes, settings, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      `INSERT INTO tests (title, description, status, start_time, end_time, duration_minutes, settings, created_by, collaborators)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [title, description, status || 'draft', startTime || null, endTime || null,
-       durationMinutes || 90, JSON.stringify(settings || {}), req.user.id]
+       durationMinutes || 90, JSON.stringify(settings || {}), req.user.id, collaborators || []]
     );
 
     if (sections?.length) {
@@ -134,13 +149,13 @@ async function createTest(req, res) {
 // ── PUT /api/tests/:id
 async function updateTest(req, res) {
   const { id } = req.params;
-  const { title, description, status, startTime, endTime, durationMinutes, settings } = req.body;
+  const { title, description, status, startTime, endTime, durationMinutes, settings, collaborators } = req.body;
 
   const { rows } = await query(
     `UPDATE tests SET title=$1, description=$2, status=$3, start_time=$4, end_time=$5,
-     duration_minutes=$6, settings=$7, updated_at=NOW() WHERE id=$8 RETURNING *`,
+     duration_minutes=$6, settings=$7, collaborators=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
     [title, description, status, startTime || null, endTime || null,
-     durationMinutes, JSON.stringify(settings || {}), id]
+     durationMinutes, JSON.stringify(settings || {}), collaborators || [], id]
   );
 
   if (!rows.length) return res.status(404).json({ error: 'Test not found' });
